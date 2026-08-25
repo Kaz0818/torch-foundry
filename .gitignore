@@ -1,0 +1,6 @@
+data/
+notebooks*
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.venv/
