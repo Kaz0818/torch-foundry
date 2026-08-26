@@ -1,0 +1,10 @@
+{
+  "data_root": "./data",
+  "image_size": [256, 256],
+  "batch_size": 32,
+  "val_ratio": 0.2,
+  "seed": 42,
+  "num_epochs": 2,
+  "learning_rate": 0.001,
+  "num_classes": 3
+}
