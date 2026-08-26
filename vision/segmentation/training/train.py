@@ -1,4 +1,6 @@
-from collections.abc import Callable, Iterable
+import json
+from collections.abc import Callable, Iterable, Mapping
+from pathlib import Path
 from typing import Protocol, TypedDict
 
 import torch
@@ -19,6 +21,8 @@ class SegmentationModel(Protocol):
 
     def __call__(self, images: Tensor) -> Tensor: ...
 
+    def state_dict(self) -> Mapping[str, Tensor]: ...
+
 
 class TrainingHistory(TypedDict):
     train_loss: list[float]
@@ -27,6 +31,19 @@ class TrainingHistory(TypedDict):
     class_ious: list[list[float]]
     val_dice: list[float]
     class_dices: list[list[float]]
+
+
+def _save_training_artifacts(
+    model: SegmentationModel,
+    history: TrainingHistory,
+    output_dir: str | Path,
+) -> None:
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), output_path / "model.pt")
+    with (output_path / "history.json").open("w", encoding="utf-8") as file:
+        json.dump(history, file, indent=2)
+        file.write("\n")
 
 
 def train(
@@ -39,7 +56,13 @@ def train(
     device: torch.device | str,
     num_epochs: int = 5,
     num_classes: int = 3,
+    output_dir: str | Path | None = None,
 ) -> TrainingHistory:
+    """Train and optionally overwrite the latest weights/history after each epoch.
+
+    ``model.pt`` contains only the state dict, not optimizer or resume state.
+    Load it into the same model architecture with ``map_location`` as needed.
+    """
     history: TrainingHistory = {
         "train_loss": [],
         "val_loss": [],
@@ -154,6 +177,9 @@ def train(
 
         history["val_dice"].append(val_mdice)
         history["class_dices"].append(class_dices)
+
+        if output_dir is not None:
+            _save_training_artifacts(model, history, output_dir)
 
         print(
             " | ".join(
