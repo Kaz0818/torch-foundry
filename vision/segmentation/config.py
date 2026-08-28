@@ -3,7 +3,9 @@ import math
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+
+type LossName = Literal["cross_entropy", "ce_dice"]
 
 
 def _is_int(value: object) -> bool:
@@ -21,6 +23,10 @@ class Config:
     learning_rate: float = 1e-3
     num_classes: int = 2
     wandb_enabled: bool = True
+    loss_name: LossName = "cross_entropy"
+    ce_weight: float = 0.5
+    dice_weight: float = 0.5
+    dice_include_background: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.data_root, str) or not self.data_root:
@@ -62,6 +68,32 @@ class Config:
 
         if not isinstance(self.wandb_enabled, bool):
             raise TypeError("wandb_enabled must be a boolean")
+
+        if self.loss_name not in ("cross_entropy", "ce_dice"):
+            raise ValueError("loss_name must be 'cross_entropy' or 'ce_dice'")
+
+        for name in ("ce_weight", "dice_weight"):
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(value)
+                or value < 0
+            ):
+                raise ValueError(f"{name} must be a non-negative finite number")
+        if self.ce_weight + self.dice_weight == 0:
+            raise ValueError("ce_weight and dice_weight must not both be zero")
+
+        if not isinstance(self.dice_include_background, bool):
+            raise TypeError("dice_include_background must be a boolean")
+        if (
+            self.loss_name == "ce_dice"
+            and not self.dice_include_background
+            and self.num_classes < 2
+        ):
+            raise ValueError(
+                "ce_dice excluding background requires num_classes >= 2"
+            )
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, Any]) -> "Config":

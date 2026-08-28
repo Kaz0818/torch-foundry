@@ -120,7 +120,11 @@ dataset = SegmentDataset(images[:20], masks[:20], image_size=(64, 64))
   "num_epochs": 1,
   "learning_rate": 0.001,
   "num_classes": 2,
-  "wandb_enabled": true
+  "wandb_enabled": true,
+  "loss_name": "cross_entropy",
+  "ce_weight": 0.5,
+  "dice_weight": 0.5,
+  "dice_include_background": false
 }
 ```
 
@@ -135,6 +139,12 @@ dataset = SegmentDataset(images[:20], masks[:20], image_size=(64, 64))
 | `learning_rate` | Adamの学習率 |
 | `num_classes` | 出力クラス数。Oxford iSegでは2 |
 | `wandb_enabled` | W&Bへの保存を有効にするか。`false`ならプロジェクト名なしでローカル保存だけを実行 |
+| `loss_name` | 損失関数。`cross_entropy` または `ce_dice` |
+| `ce_weight` | `ce_dice` における交差エントロピー損失の重み |
+| `dice_weight` | `ce_dice` における Dice 損失の重み |
+| `dice_include_background` | `ce_dice` の Dice 損失に背景クラス ID `0` を含めるか |
+
+部品クラスをより重視する実験では、`loss_name` を `ce_dice` に変更してください。初期値では交差エントロピー損失と Dice 損失をそれぞれ 0.5 の重みで合算し、Dice 損失から背景クラス ID `0` を除外します。
 
 本格的に学習する場合は、`main.py`の先頭20組の制限を外し、データ数・epoch数・画像サイズ・バッチサイズを目的に合わせて変更してください。このリポジトリのデフォルト実行は、関数の動作確認を目的とした短い学習です。
 

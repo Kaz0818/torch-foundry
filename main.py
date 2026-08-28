@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import wandb
-from torch import nn, optim
+from torch import optim
 
 from vision.segmentation.config import Config
 from vision.segmentation.datasets.dataset import (
@@ -17,6 +17,7 @@ from vision.segmentation.datasets.dataset import (
     get_dataloader,
 )
 from vision.segmentation.datasets.oxford_iseg import prepare_oxford_iseg
+from vision.segmentation.losses import build_loss
 from vision.segmentation.metrics.segmentation import (
     segmentation_counts,
     segmentation_metrics,
@@ -137,7 +138,7 @@ def main(
     print("total params:", total_params)
 
     # 3: criterion, optimizer
-    criterion = nn.CrossEntropyLoss()
+    criterion = build_loss(config)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
 
     batch_images = batch_images.to(device)

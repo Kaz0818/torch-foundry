@@ -41,6 +41,15 @@ class ConfigTests(unittest.TestCase):
             {"seed": -1},
             {"image_size": [30, 32]},
             {"image_size": [32]},
+            {"loss_name": "focal"},
+            {"ce_weight": -0.1},
+            {"dice_weight": float("inf")},
+            {"ce_weight": 0, "dice_weight": 0},
+            {
+                "loss_name": "ce_dice",
+                "num_classes": 1,
+                "dice_include_background": False,
+            },
         )
         for values in invalid_values:
             with self.subTest(values=values), self.assertRaises(ValueError):
@@ -49,6 +58,10 @@ class ConfigTests(unittest.TestCase):
         for value in (1, "yes"):
             with self.subTest(wandb_enabled=value), self.assertRaises(TypeError):
                 Config.from_mapping({"wandb_enabled": value})
+
+        for value in (1, "no"):
+            with self.subTest(dice_include_background=value), self.assertRaises(TypeError):
+                Config.from_mapping({"dice_include_background": value})
 
 
 class FakeDataset(Dataset[tuple[Tensor, Tensor]]):

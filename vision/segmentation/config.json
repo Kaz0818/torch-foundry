@@ -7,5 +7,9 @@
   "num_epochs": 1,
   "learning_rate": 0.001,
   "num_classes": 2,
-  "wandb_enabled": true
+  "wandb_enabled": true,
+  "loss_name": "cross_entropy",
+  "ce_weight": 0.5,
+  "dice_weight": 0.5,
+  "dice_include_background": false
 }
