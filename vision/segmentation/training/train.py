@@ -12,6 +12,7 @@ from ..metrics.segmentation import segmentation_counts, segmentation_metrics
 
 type Batch = tuple[Tensor, Tensor]
 type LossFunction = Callable[[Tensor, Tensor], Tensor]
+type MetricLogger = Callable[[dict[str, int | float]], None]
 
 
 class SegmentationModel(Protocol):
@@ -57,11 +58,13 @@ def train(
     num_epochs: int = 5,
     num_classes: int = 3,
     output_dir: str | Path | None = None,
+    metric_logger: MetricLogger | None = None,
 ) -> TrainingHistory:
-    """Train and optionally overwrite the latest weights/history after each epoch.
+    """Train, save local artifacts, and optionally report each epoch's metrics.
 
     ``model.pt`` contains only the state dict, not optimizer or resume state.
     Load it into the same model architecture with ``map_location`` as needed.
+    ``metric_logger`` receives one flat dictionary after each completed epoch.
     """
     history: TrainingHistory = {
         "train_loss": [],
@@ -180,6 +183,21 @@ def train(
 
         if output_dir is not None:
             _save_training_artifacts(model, history, output_dir)
+
+        if metric_logger is not None:
+            metrics: dict[str, int | float] = {
+                "epoch": epoch + 1,
+                "train/loss": avg_train_loss,
+                "val/loss": avg_val_loss,
+                "val/mean_iou": val_miou,
+                "val/mean_dice": val_mdice,
+            }
+            for class_id, (class_iou, class_dice) in enumerate(
+                zip(class_ious, class_dices)
+            ):
+                metrics[f"val/iou/class_{class_id}"] = class_iou
+                metrics[f"val/dice/class_{class_id}"] = class_dice
+            metric_logger(metrics)
 
         print(
             " | ".join(

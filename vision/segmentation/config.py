@@ -13,13 +13,14 @@ def _is_int(value: object) -> bool:
 @dataclass(frozen=True)
 class Config:
     data_root: str = "./data"
-    image_size: tuple[int, int] = (256, 256)
-    batch_size: int = 32
+    image_size: tuple[int, int] = (64, 64)
+    batch_size: int = 4
     val_ratio: float = 0.2
     seed: int = 42
-    num_epochs: int = 2
+    num_epochs: int = 1
     learning_rate: float = 1e-3
-    num_classes: int = 3
+    num_classes: int = 2
+    wandb_enabled: bool = True
 
     def __post_init__(self) -> None:
         if not isinstance(self.data_root, str) or not self.data_root:
@@ -58,6 +59,9 @@ class Config:
             or self.learning_rate <= 0
         ):
             raise ValueError("learning_rate must be a positive finite number")
+
+        if not isinstance(self.wandb_enabled, bool):
+            raise TypeError("wandb_enabled must be a boolean")
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, Any]) -> "Config":

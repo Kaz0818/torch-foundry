@@ -24,6 +24,14 @@ class SegmentDataset(Dataset):
         image_size: tuple[int, int] = (256, 256),
         augment: bool = True,
     ) -> None:
+        if not images:
+            raise ValueError("images must not be empty")
+        if len(images) != len(masks):
+            raise ValueError(
+                f"images and masks must have the same length: "
+                f"{len(images)} != {len(masks)}"
+            )
+
         self.images = images
         self.masks = masks
 
@@ -66,43 +74,61 @@ class SegmentDataset(Dataset):
         return image, mask
 
 
-def get_dataloader(images, masks, batch_size):
+def get_dataloader(
+    images: list[Path],
+    masks: list[Path],
+    batch_size: int,
+    image_size: tuple[int, int] = (256, 256),
+    val_ratio: float = 0.2,
+    seed: int = 42,
+) -> tuple[DataLoader, DataLoader]:
     """
     images: imageの配列.Pathで.globで取得したimage配列
     masks: Path.globで取得したmasksの配列
     batch_size: batchを指定
     """
 
-    indices = list(range(len(images)))
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool):
+        raise TypeError("batch_size must be an integer >= 1")
+    if batch_size < 1:
+        raise ValueError("batch_size must be an integer >= 1")
+    if not isinstance(val_ratio, (int, float)) or isinstance(val_ratio, bool):
+        raise TypeError("val_ratio must satisfy 0 < val_ratio < 1")
+    if not 0 < val_ratio < 1:
+        raise ValueError("val_ratio must satisfy 0 < val_ratio < 1")
 
-    train_idx, val_idx = train_test_split(
-        indices,
-        test_size=0.2,
-        shuffle=True,
-        random_state=42,
-    )
-
-    train_full = SegmentDataset(
+    dataset = SegmentDataset(
         images=images,
         masks=masks,
-        image_size=(256, 256),
+        image_size=image_size,
         augment=True,
     )
-
-    val_full = SegmentDataset(
+    val_dataset = SegmentDataset(
         images=images,
         masks=masks,
-        image_size=(256, 256),
+        image_size=image_size,
         augment=False,
     )
 
-    train_ds = Subset(train_full, train_idx)
-    val_ds = Subset(val_full, val_idx)
+    indices = list(range(len(dataset)))
+
+    train_idx, val_idx = train_test_split(
+        indices,
+        test_size=val_ratio,
+        shuffle=True,
+        random_state=seed,
+    )
+
+    train_ds = Subset(dataset, train_idx)
+    val_ds = Subset(val_dataset, val_idx)
+
+    train_generator = torch.Generator().manual_seed(seed)
 
     train_loader = DataLoader(
         train_ds,
         batch_size=batch_size,
         shuffle=True,
+        generator=train_generator,
     )
 
     val_loader = DataLoader(

@@ -145,6 +145,34 @@ class TrainingArtifactTests(unittest.TestCase):
             self.assertTrue((Path(temporary) / "model.pt").is_file())
             self.assertTrue((Path(temporary) / "history.json").is_file())
 
+    def test_metric_logger_receives_one_complete_record_per_epoch(self):
+        records = []
+
+        history = self.run_training(metric_logger=records.append)
+
+        self.assertEqual(len(records), 2)
+        self.assertEqual([record["epoch"] for record in records], [1, 2])
+        for epoch_index, record in enumerate(records):
+            self.assertEqual(record["train/loss"], history["train_loss"][epoch_index])
+            self.assertEqual(record["val/loss"], history["val_loss"][epoch_index])
+            self.assertEqual(record["val/mean_iou"], history["val_iou"][epoch_index])
+            self.assertEqual(
+                record["val/mean_dice"], history["val_dice"][epoch_index]
+            )
+            for class_id in range(3):
+                self.assertEqual(
+                    record[f"val/iou/class_{class_id}"],
+                    history["class_ious"][epoch_index][class_id],
+                )
+                self.assertEqual(
+                    record[f"val/dice/class_{class_id}"],
+                    history["class_dices"][epoch_index][class_id],
+                )
+
+    def test_metric_logger_is_optional(self):
+        history = self.run_training(metric_logger=None)
+        self.assertEqual(len(history["train_loss"]), 2)
+
     def test_save_failure_is_not_silenced(self):
         with (
             tempfile.TemporaryDirectory() as temporary,

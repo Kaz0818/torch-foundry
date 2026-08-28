@@ -46,6 +46,10 @@ class ConfigTests(unittest.TestCase):
             with self.subTest(values=values), self.assertRaises(ValueError):
                 Config.from_mapping(values)
 
+        for value in (1, "yes"):
+            with self.subTest(wandb_enabled=value), self.assertRaises(TypeError):
+                Config.from_mapping({"wandb_enabled": value})
+
 
 class FakeDataset(Dataset[tuple[Tensor, Tensor]]):
     calls: ClassVar[list[dict[str, object]]] = []
@@ -119,3 +123,9 @@ class SeedTests(unittest.TestCase):
         second = (random.random(), float(np.random.rand()), torch.rand(3))
         self.assertEqual(first[:2], second[:2])
         torch.testing.assert_close(first[2], second[2])
+
+
+class MainWandbArgumentTests(unittest.TestCase):
+    def test_enabled_wandb_requires_project_before_data_preparation(self):
+        with self.assertRaisesRegex(ValueError, "--wandb-project"):
+            main.main()

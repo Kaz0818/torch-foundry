@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import torch
+from matplotlib.figure import Figure
 from torch import Tensor
 
 from ..training.train import TrainingHistory
@@ -38,21 +39,30 @@ def show_image_mask_batch(
     plt.show()
 
 
-def plot_overlay(images: Tensor, masks: Tensor, pred_masks: Tensor) -> None:
-    """
-    model学習後の比較:
-    images: datasetからの画像
-    masks: ground truth mask
-    pred_mask: logitsに各pixel毎にargmaxをした予測mask
+def plot_overlay(
+    images: Tensor,
+    masks: Tensor,
+    pred_masks: Tensor,
+    max_images: int = 5,
+) -> Figure:
+    """Create a four-column comparison figure after model training.
+
+    ``images`` contains dataset images, ``masks`` contains ground truth masks,
+    and ``pred_masks`` contains the class selected for each pixel.
     """
 
-    n = min(5, len(images))
-    _, axes = plt.subplots(n, 4, figsize=(16, 4 * n), squeeze=False)
+    if max_images < 1:
+        raise ValueError("max_images must be an integer >= 1")
+    if len(images) < 1:
+        raise ValueError("images must not be empty")
+
+    n = min(max_images, len(images))
+    figure, axes = plt.subplots(n, 4, figsize=(16, 4 * n), squeeze=False)
 
     for i in range(n):
-        image = images[i].permute(1, 2, 0).cpu()
-        true_mask = masks[i].cpu()
-        pred_mask = pred_masks[i].cpu()
+        image = images[i].permute(1, 2, 0).detach().cpu().numpy()
+        true_mask = masks[i].detach().cpu().numpy()
+        pred_mask = pred_masks[i].detach().cpu().numpy()
 
         axes[i, 0].imshow(image)
         axes[i, 0].set_title("Image", fontsize=20)
@@ -71,8 +81,8 @@ def plot_overlay(images: Tensor, masks: Tensor, pred_masks: Tensor) -> None:
         axes[i, 3].set_title("Prediction Overlay", fontsize=20)
         axes[i, 3].axis("off")
 
-    plt.tight_layout()
-    plt.show()
+    figure.tight_layout()
+    return figure
 
 
 def plot_train_val_loss_val_iou(history: TrainingHistory) -> None:

@@ -1,5 +1,6 @@
 data/
-notebooks*
+notebooks/*
+!notebooks/segmentation_wandb_example.ipynb
 __pycache__/
 *.py[cod]
 .ruff_cache/
