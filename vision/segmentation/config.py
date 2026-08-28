@@ -14,24 +14,30 @@ def _is_int(value: object) -> bool:
 
 @dataclass(frozen=True)
 class Config:
-    data_root: str = "./data"
+    num_classes: int
     image_size: tuple[int, int] = (64, 64)
     batch_size: int = 4
     val_ratio: float = 0.2
     seed: int = 42
     num_epochs: int = 1
     learning_rate: float = 1e-3
-    num_classes: int = 2
     wandb_enabled: bool = True
     loss_name: LossName = "cross_entropy"
     ce_weight: float = 0.5
     dice_weight: float = 0.5
     dice_include_background: bool = False
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.data_root, str) or not self.data_root:
-            raise ValueError("data_root must be a non-empty string")
+    @property
+    def data_root(self) -> str:
+        """Return the legacy Oxford iSeg location for the old sample Notebook.
 
+        New training configurations must keep dataset paths outside ``Config``.
+        This compatibility property lets the unchanged Oxford iSeg sample keep
+        using its historical ``./data`` location during the transition.
+        """
+        return "./data"
+
+    def __post_init__(self) -> None:
         if (
             not isinstance(self.image_size, (list, tuple))
             or len(self.image_size) != 2
@@ -97,6 +103,8 @@ class Config:
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, Any]) -> "Config":
+        if "num_classes" not in values:
+            raise ValueError("num_classes is required")
         allowed = {field.name for field in fields(cls)}
         unknown = set(values) - allowed
         if unknown:

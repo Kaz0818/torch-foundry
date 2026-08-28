@@ -5,6 +5,7 @@ from torch import nn
 
 from vision.segmentation.config import Config
 from vision.segmentation.losses import MulticlassCEDiceLoss, build_loss
+from vision.segmentation.training.train import train
 
 
 class LossFactoryTests(unittest.TestCase):
@@ -12,7 +13,7 @@ class LossFactoryTests(unittest.TestCase):
         logits = torch.tensor([[[[1.0, -1.0]], [[-1.0, 1.0]], [[0.0, 0.0]]]])
         target = torch.tensor([[[0, 1]]])
 
-        criterion = build_loss(Config(loss_name="cross_entropy"))
+        criterion = build_loss(Config(num_classes=3, loss_name="cross_entropy"))
 
         self.assertIsInstance(criterion, nn.CrossEntropyLoss)
         torch.testing.assert_close(
@@ -66,8 +67,8 @@ class MulticlassCEDiceLossTests(unittest.TestCase):
         )
 
     def test_backward_computes_gradients(self):
-        logits = torch.randn(2, 3, 4, 4, requires_grad=True)
-        target = torch.randint(3, (2, 4, 4))
+        logits = torch.randn(2, 7, 4, 4, requires_grad=True)
+        target = torch.randint(7, (2, 4, 4))
 
         loss = MulticlassCEDiceLoss()(logits, target)
         loss.backward()
@@ -76,6 +77,32 @@ class MulticlassCEDiceLossTests(unittest.TestCase):
         if gradient is None:
             self.fail("backward did not compute logits.grad")
         self.assertTrue(torch.isfinite(gradient).all())
+
+    def test_seven_class_training_loop_updates_model(self):
+        generator = torch.Generator().manual_seed(42)
+        images = torch.randn(4, 3, 4, 4, generator=generator)
+        masks = torch.randint(7, (4, 4, 4), generator=generator)
+        batches = [
+            (images[index : index + 2], masks[index : index + 2]) for index in (0, 2)
+        ]
+        model = nn.Conv2d(3, 7, kernel_size=1)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        initial_weight = model.weight.detach().clone()
+
+        history = train(
+            train_loader=batches,
+            val_loader=batches,
+            model=model,
+            criterion=MulticlassCEDiceLoss(),
+            optimizer=optimizer,
+            device="cpu",
+            num_epochs=1,
+            num_classes=7,
+        )
+
+        self.assertEqual(len(history["train_loss"]), 1)
+        self.assertTrue(torch.isfinite(torch.tensor(history["train_loss"])).all())
+        self.assertFalse(torch.equal(initial_weight, model.weight.detach()))
 
 
 if __name__ == "__main__":

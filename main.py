@@ -67,9 +67,7 @@ def main(
         )
     set_seed(config.seed)
 
-    data_root = Path(config.data_root)
-    if not data_root.is_absolute():
-        data_root = PROJECT_ROOT / data_root
+    data_root = PROJECT_ROOT / "data"
 
     # Oxford iSeg is small enough to use as a complete smoke-test dataset.
     images, masks = prepare_oxford_iseg(data_root)
@@ -182,6 +180,11 @@ def main(
         class_dices,
     )
 
+    train_dataset = train_loader.dataset
+    val_dataset = val_loader.dataset
+    if not isinstance(train_dataset, Sized) or not isinstance(val_dataset, Sized):
+        raise TypeError("train and validation datasets must define their size")
+
     output_dir = (
         PROJECT_ROOT
         / "vision"
@@ -191,26 +194,25 @@ def main(
     )
     output_dir.mkdir(parents=True, exist_ok=False)
     print("output directory:", output_dir)
-    effective_config = config.to_dict()
-    effective_config["data_root"] = str(data_root)
-    (output_dir / "config.json").write_text(
-        json.dumps(effective_config, indent=2) + "\n", encoding="utf-8"
-    )
-
-    train_dataset = train_loader.dataset
-    val_dataset = val_loader.dataset
-    if not isinstance(train_dataset, Sized) or not isinstance(val_dataset, Sized):
-        raise TypeError("train and validation datasets must define their size")
-
-    wandb_config = {
-        **effective_config,
-        "dataset_name": "Oxford iSeg",
-        "model_name": "UNet",
-        "train_samples": len(train_dataset),
-        "val_samples": len(val_dataset),
-        "total_parameters": total_params,
+    run_config = {
+        "training_config": config.to_dict(),
+        "dataset": {
+            "name": "Oxford iSeg",
+            "data_root": str(data_root),
+            "train_samples": len(train_dataset),
+            "validation_samples": len(val_dataset),
+        },
+        "model": {
+            "name": "UNet",
+            "total_parameters": total_params,
+        },
         "device": str(device),
     }
+    (output_dir / "config.json").write_text(
+        json.dumps(run_config, indent=2) + "\n", encoding="utf-8"
+    )
+
+    wandb_config = run_config
     wandb_mode = None if config.wandb_enabled else "disabled"
 
     with wandb.init(

@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 from unittest.mock import patch
 
 import numpy as np
@@ -17,18 +17,34 @@ from vision.segmentation.datasets import oxford_pet
 
 
 class ConfigTests(unittest.TestCase):
+    def test_num_classes_is_required(self):
+        config_constructor = cast(Any, Config)
+        with self.assertRaises(TypeError):
+            config_constructor()
+        with self.assertRaisesRegex(ValueError, "num_classes is required"):
+            Config.from_mapping({"batch_size": 4})
+
     def test_default_config_file_matches_current_defaults(self):
         config = Config.from_json(Path(__file__).parents[1] / "config.json")
-        self.assertEqual(config, Config())
+        self.assertEqual(config, Config(num_classes=2))
 
     def test_json_values_override_defaults(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as file:
-            json.dump({"batch_size": 4, "image_size": [32, 48], "seed": 7}, file)
+            json.dump(
+                {
+                    "num_classes": 3,
+                    "batch_size": 4,
+                    "image_size": [32, 48],
+                    "seed": 7,
+                },
+                file,
+            )
             file.flush()
             config = Config.from_json(file.name)
         self.assertEqual(config.batch_size, 4)
         self.assertEqual(config.image_size, (32, 48))
         self.assertEqual(config.seed, 7)
+        self.assertEqual(config.num_classes, 3)
         self.assertEqual(config.to_dict()["image_size"], [32, 48])
 
     def test_unknown_and_invalid_values_are_rejected(self):
@@ -53,15 +69,17 @@ class ConfigTests(unittest.TestCase):
         )
         for values in invalid_values:
             with self.subTest(values=values), self.assertRaises(ValueError):
-                Config.from_mapping(values)
+                Config.from_mapping({"num_classes": 2, **values})
 
         for value in (1, "yes"):
             with self.subTest(wandb_enabled=value), self.assertRaises(TypeError):
-                Config.from_mapping({"wandb_enabled": value})
+                Config.from_mapping({"num_classes": 2, "wandb_enabled": value})
 
         for value in (1, "no"):
             with self.subTest(dice_include_background=value), self.assertRaises(TypeError):
-                Config.from_mapping({"dice_include_background": value})
+                Config.from_mapping(
+                    {"num_classes": 2, "dice_include_background": value}
+                )
 
 
 class FakeDataset(Dataset[tuple[Tensor, Tensor]]):

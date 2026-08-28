@@ -39,7 +39,8 @@ model.pt / history.json / config.jsonとW&Bログを保存
 | 評価 | `vision/segmentation/training/evaluation.py` |
 | IoU / Dice | `vision/segmentation/metrics/segmentation.py` |
 | 実行の入口 | `main.py` |
-| Kaggleでの一連の実行例 | `notebooks/segmentation_wandb_example.ipynb` |
+| Oxford iSeg向けKaggle実行例 | `notebooks/segmentation_wandb_example.ipynb` |
+| 独自データセット向けKaggle実行例 | `notebooks/kaggle_custom_segmentation.ipynb` |
 
 ## 実行する
 
@@ -112,14 +113,13 @@ dataset = SegmentDataset(images[:20], masks[:20], image_size=(64, 64))
 
 ```json
 {
-  "data_root": "./data",
+  "num_classes": 2,
   "image_size": [64, 64],
   "batch_size": 4,
   "val_ratio": 0.2,
   "seed": 42,
   "num_epochs": 1,
   "learning_rate": 0.001,
-  "num_classes": 2,
   "wandb_enabled": true,
   "loss_name": "cross_entropy",
   "ce_weight": 0.5,
@@ -130,14 +130,13 @@ dataset = SegmentDataset(images[:20], masks[:20], image_size=(64, 64))
 
 | 設定 | 意味 |
 | --- | --- |
-| `data_root` | Oxford iSegを置く親ディレクトリ |
 | `image_size` | Datasetへ入力する高さ・幅。U-Netの都合で縦横とも16の倍数 |
 | `batch_size` | 1回の更新で使う画像枚数 |
 | `val_ratio` | 20組のうちvalidationへ分ける割合 |
 | `seed` | 分割、DataLoader、モデル初期化に使う乱数seed |
 | `num_epochs` | 学習epoch数 |
 | `learning_rate` | Adamの学習率 |
-| `num_classes` | 出力クラス数。Oxford iSegでは2 |
+| `num_classes` | 出力クラス数。必須。Oxford iSegでは2 |
 | `wandb_enabled` | W&Bへの保存を有効にするか。`false`ならプロジェクト名なしでローカル保存だけを実行 |
 | `loss_name` | 損失関数。`cross_entropy` または `ce_dice` |
 | `ce_weight` | `ce_dice` における交差エントロピー損失の重み |
@@ -164,7 +163,7 @@ train Datasetだけ水平反転を使い、validation Datasetでは使いませ�
 
 ```text
 vision/segmentation/runs/<実行日時>/
-├── config.json   # 実行時に使った設定
+├── config.json   # 学習設定、データセット、モデル、実行環境
 ├── history.json  # epochごとのloss / IoU / Dice
 └── model.pt      # 最終epochのstate_dict
 ```
@@ -183,7 +182,9 @@ W&Bには実行時の設定、データセット名、モデル名、学習・va
 
 ## Kaggle Notebookで使う
 
-一連のセルを含むサンプルは [notebooks/segmentation_wandb_example.ipynb](notebooks/segmentation_wandb_example.ipynb) にあります。このNotebookには、clone、依存パッケージの準備、Kaggle Secretsを使ったW&B認証、学習、指標と比較画像の保存までが含まれます。
+Oxford iSeg用の一連のセルは [notebooks/segmentation_wandb_example.ipynb](notebooks/segmentation_wandb_example.ipynb) にあります。
+
+独自データセットを使う場合は、[notebooks/kaggle_custom_segmentation.ipynb](notebooks/kaggle_custom_segmentation.ipynb) を使います。このNotebookでは、設定、W&B認証、データ検証、学習準備、学習、可視化を別々のセルに分けています。画像とマスクは拡張子を除くファイル名で対応付けられ、全マスクのクラス ID から `num_classes` を自動設定します。
 
 手動で準備する場合は、リポジトリをNotebookの作業領域へcloneします。
 
@@ -194,7 +195,7 @@ W&Bには実行時の設定、データセット名、モデル名、学習・va
 !pip install -e .
 ```
 
-KaggleのAdd-ons > Secretsへ、W&BのAPIキーを`WANDB_API_KEY`という名前で登録してください。NotebookではW&Bプロジェクト名を`WANDB_PROJECT`へ明示的に設定します。
+KaggleのAdd-ons > Secretsへ、W&BのAPIキーを`WANDB_API_KEY`という名前で登録してください。独自データセット用Notebookで別のSecret名を使う場合は、設定セルの`WANDB_SECRET_NAME`を同じ名前へ変更します。NotebookではW&Bプロジェクト名を`WANDB_PROJECT`へ明示的に設定します。
 
 KaggleのGPUを有効にすると、コードがCUDAを選択します。CPUやApple Siliconでは、利用可能なdeviceを自動で選びます。GPUメモリが足りない場合は、まず`batch_size`を下げ、必要なら`image_size`も下げてください。
 
