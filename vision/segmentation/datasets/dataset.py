@@ -2,8 +2,9 @@ from pathlib import Path
 
 import torch
 from PIL import Image
+from sklearn.model_selection import train_test_split
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import tv_tensors
 from torchvision.transforms import v2
 
@@ -63,3 +64,51 @@ class SegmentDataset(Dataset):
         mask = mask.squeeze(0).long()
 
         return image, mask
+
+
+def get_dataloader(images, masks, batch_size):
+    """
+    images: imageの配列.Pathで.globで取得したimage配列
+    masks: Path.globで取得したmasksの配列
+    batch_size: batchを指定
+    """
+
+    indices = list(range(len(images)))
+
+    train_idx, val_idx = train_test_split(
+        indices,
+        test_size=0.2,
+        shuffle=True,
+        random_state=42,
+    )
+
+    train_full = SegmentDataset(
+        images=images,
+        masks=masks,
+        image_size=(256, 256),
+        augment=True,
+    )
+
+    val_full = SegmentDataset(
+        images=images,
+        masks=masks,
+        image_size=(256, 256),
+        augment=False,
+    )
+
+    train_ds = Subset(train_full, train_idx)
+    val_ds = Subset(val_full, val_idx)
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+    )
+
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+    )
+
+    return train_loader, val_loader
