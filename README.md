@@ -71,7 +71,7 @@ uv run python main.py \
 .venv/bin/python main.py --wandb-project my-segmentation-project
 ```
 
-初回はOxford VGGの公式ページから`images.tgz`（画像）と`images-gt.tgz`（Ground Truth）をダウンロードします。回目以降は`data/oxford-iseg`のデータを再利用します。Kaggle Notebookから外部ダウンロードする場合は、NotebookのInternet設定を有効にしてください。
+初回はOxford VGGの公式ページから`images.tgz`（画像）と`images-gt.tgz`（Ground Truth）をダウンロードします。2回目以降は`data/oxford-iseg`のデータを再利用します。Kaggle Notebookから外部ダウンロードする場合は、NotebookのInternet設定を有効にしてください。
 
 公式ページ: <https://www.robots.ox.ac.uk/~vgg/data/iseg/>
 
