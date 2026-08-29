@@ -44,15 +44,16 @@ model.pt / history.json / config.jsonとW&Bログを保存
 
 ## 実行する
 
-Python 3.12以上を用意し、プロジェクトのルートで依存パッケージをインストールします。
+Python 3.12以上を用意し、プロジェクトのルートで本体の依存パッケージをインストールします。
 
 ```bash
 uv sync
 ```
 
-W&B（Weights & Biases、実験ログ管理サービス）へ初めて保存する環境では、先に認証します。
+W&Bへログする場合は extra `wandb` を足します。Notebook用の Jupyter は extra `notebooks` です。
 
 ```bash
+uv sync --extra wandb
 uv run wandb login
 ```
 
@@ -70,7 +71,7 @@ uv run python main.py \
 .venv/bin/python main.py --wandb-project my-segmentation-project
 ```
 
-初回はOxford VGGの公式ページから`images.tgz`（画像）と`images-gt.tgz`（Ground Truth）をダウンロードします。2回目以降は`data/oxford-iseg`のデータを再利用します。Kaggle Notebookから外部ダウンロードする場合は、NotebookのInternet設定を有効にしてください。
+初回はOxford VGGの公式ページから`images.tgz`（画像）と`images-gt.tgz`（Ground Truth）をダウンロードします。回目以降は`data/oxford-iseg`のデータを再利用します。Kaggle Notebookから外部ダウンロードする場合は、NotebookのInternet設定を有効にしてください。
 
 公式ページ: <https://www.robots.ox.ac.uk/~vgg/data/iseg/>
 
@@ -186,13 +187,13 @@ Oxford iSeg用の一連のセルは [notebooks/segmentation_wandb_example.ipynb]
 
 独自データセットを使う場合は、[notebooks/kaggle_custom_segmentation.ipynb](notebooks/kaggle_custom_segmentation.ipynb) を使います。このNotebookでは、設定、W&B認証、データ検証、学習準備、学習、可視化を別々のセルに分けています。画像とマスクは拡張子を除くファイル名で対応付けられ、全マスクのクラス ID から `num_classes` を自動設定します。
 
-手動で準備する場合は、リポジトリをNotebookの作業領域へcloneします。
+手動で準備する場合は、リポジトリをNotebookの作業領域へcloneします。Kaggle の既存 PyTorch を使うため、依存の再インストールはしません。
 
 ```python
 %cd /kaggle/working
 !git clone https://github.com/Kaz0818/torch-foundry.git torch-foundry
 %cd /kaggle/working/torch-foundry
-!pip install -e .
+!pip install -e . --no-deps
 ```
 
 KaggleのAdd-ons > Secretsへ、W&BのAPIキーを`WANDB_API_KEY`という名前で登録してください。独自データセット用Notebookで別のSecret名を使う場合は、設定セルの`WANDB_SECRET_NAME`を同じ名前へ変更します。NotebookではW&Bプロジェクト名を`WANDB_PROJECT`へ明示的に設定します。
