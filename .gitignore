@@ -6,4 +6,4 @@ __pycache__/
 *.py[cod]
 .ruff_cache/
 .venv/
-vision/segmentation/runs/
+archive/segmentation_legacy/vision/segmentation/runs/
