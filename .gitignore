@@ -1,5 +1,6 @@
 data/
 notebooks/*
+!notebooks/flood_seg.ipynb
 !notebooks/segmentation_wandb_example.ipynb
 !notebooks/kaggle_custom_segmentation.ipynb
 __pycache__/
@@ -7,3 +8,5 @@ __pycache__/
 .ruff_cache/
 .venv/
 archive/segmentation_legacy/vision/segmentation/runs/
+best_model.pt
+wandb/
