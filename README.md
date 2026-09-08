@@ -1,7 +1,6 @@
 # torch-foundry
 
 Kaggle Hub の Flood Area Segmentation データセットを使った、二値画像セグメンテーションの最小構成です。
-以前の実装は [`archive/segmentation_legacy/`](archive/segmentation_legacy/) に保存しています。
 
 ## セットアップ
 
